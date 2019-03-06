@@ -124,7 +124,7 @@ object StructuredStreamingConsumer extends Serializable {
       .option(MapRDBSourceConfig.SampleSizeOption, 1000)
       .start()
 
-    writedb.awaitTermination(3000)
+    writedb.awaitTermination(30000)
 
   }
 
