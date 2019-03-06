@@ -17,32 +17,32 @@ object QueryFlight {
 
 
 
-  case class Flight(_id: String, dofW: Integer, carrier: String, origin: String,
-    dest: String, crsdephour: Integer, crsdeptime: Double, depdelay: Double,
-    crsarrtime: Double, arrdelay: Double, crselapsedtime: Double, dist: Double, label: Double, pred_rf: Double)
-    extends Serializable
-
-  val schema = StructType(Array(
-    StructField("_id", StringType, true),
+ case class Flight(id: String, fldate: String, month: Integer, dofW: Integer, carrier: String, src: String, dst: String,orig_dest: String,label: String,prediction: String, crsdephour: Integer, crsdeptime: Integer, depdelay: Double, crsarrtime: Integer, arrdelay: Double, crselapsedtime: Double, dist: Double)
+  
+ val schema = StructType(Array(
+    StructField("id", StringType, true),
+    StructField("fldate", StringType, true),
+    StructField("month", IntegerType, true),
     StructField("dofW", IntegerType, true),
     StructField("carrier", StringType, true),
-    StructField("origin", StringType, true),
-    StructField("dest", StringType, true),
+    StructField("src", StringType, true),
+    StructField("dst", StringType, true),
+    StructField("orig_dest", StringType, true),
+    StructField("label", StringType, true),
+    StructField("prediction", StringType, true),
     StructField("crsdephour", IntegerType, true),
-    StructField("crsdeptime", DoubleType, true),
+    StructField("crsdeptime", IntegerType, true),
     StructField("depdelay", DoubleType, true),
-    StructField("crsarrtime", DoubleType, true),
+    StructField("crsarrtime", IntegerType, true),
     StructField("arrdelay", DoubleType, true),
     StructField("crselapsedtime", DoubleType, true),
-    StructField("dist", DoubleType, true),
-    StructField("label", DoubleType, true),
-    StructField("pred_rf", DoubleType, true)
+    StructField("dist", DoubleType, true)
   ))
 
   def main(args: Array[String]) {
 
-    // var tableName: String = "/mapr/maprdemo.mapr.io/apps/flights"
-    var tableName: String = "/apps/flighttable"
+    var tableName: String = "/user/mapr/flighttable"
+    
     if (args.length == 1) {
       tableName = args(0)
     } else {
@@ -55,50 +55,51 @@ object QueryFlight {
 
     import spark.implicits._
     // load payment dataset from MapR-DB 
-    val fdf: Dataset[Flight] = spark.sparkSession.loadFromMapRDB[Flight](tableName, schema).as[Flight]
+    val df: Dataset[Flight] = spark.sparkSession.loadFromMapRDB[Flight](tableName, schema).as[Flight]
 
     println("Flights from MapR-DB")
-    fdf.show
+    df.show
 
-    fdf.createOrReplaceTempView("flight")
+    df.createOrReplaceTempView("flights")
     println("what is the count of predicted delay/notdelay for this dstream dataset")
-    fdf.groupBy("pred_rf").count().show()
+    
+    df.groupBy("orig_dest","label","prediction").count.show
+    
+    df.groupBy("prediction").count().show()
 
     println("what is the count of predicted delay/notdelay by scheduled departure hour")
-    spark.sql("select crsdephour, pred_rf, count(pred_rf) from flight group by crsdephour, pred_rf order by crsdephour").show
+    spark.sql("select crsdephour, prediction, count(prediction) from flights group by crsdephour, prediction order by crsdephour").show
     println("what is the count of predicted delay/notdelay by origin")
-    spark.sql("select origin, pred_rf, count(pred_rf) from flight group by origin, pred_rf order by origin").show
+    spark.sql("select origin, prediction, count(prediction) from flights group by origin, prediction order by origin").show
     println("what is the count of predicted and actual  delay/notdelay by origin")
-    spark.sql("select origin, pred_rf, count(pred_rf),label, count(label) from flight group by origin, pred_rf, label order by origin, label, pred_rf").show
+    spark.sql("select origin, prediction, count(prediction),label, count(label) from flights group by origin, prediction, label order by origin, label, prediction").show
     println("what is the count of predicted delay/notdelay by dest")
-    spark.sql("select dest, pred_rf, count(pred_rf) from flight group by dest, pred_rf order by dest").show
+    spark.sql("select dest, prediction, count(prediction) from flights group by dest, prediction order by dest").show
     println("what is the count of predicted delay/notdelay by origin,dest")
-    spark.sql("select origin,dest, pred_rf, count(pred_rf) from flight group by origin,dest, pred_rf order by origin,dest").show
+    spark.sql("select origin,dest, prediction, count(prediction) from flights group by origin,dest, prediction order by origin,dest").show
     println("what is the count of predicted delay/notdelay by day of the week")
-    spark.sql("select dofW, pred_rf, count(pred_rf) from flight group by dofW, pred_rf order by dofW").show
+    spark.sql("select dofW, prediction, count(prediction) from flights group by dofW, prediction order by dofW").show
     println("what is the count of predicted delay/notdelay by carrier")
-    spark.sql("select carrier, pred_rf, count(pred_rf) from flight group by carrier, pred_rf order by carrier").show
+    spark.sql("select carrier, prediction, count(prediction) from flights group by carrier, prediction order by carrier").show
 
-    val lp = fdf.select("label", "pred_rf")
-    val counttotal = fdf.count()
-    val label0count = lp.filter($"label" === 0.0).count()
-    val pred0count = lp.filter($"pred_rf" === 0.0).count()
-    val label1count = lp.filter($"label" === 1.0).count()
-    val pred1count = lp.filter($"pred_rf" === 1.0).count()
+    val lp = df.select("label", "prediction")
+    val counttotal = df.count()
 
-    val correct = lp.filter($"label" === $"pred_rf").count()
-    val wrong = lp.filter(not($"label" === $"pred_rf")).count()
+
+    val correct = lp.filter($"label" === $"prediction").count()
+    val wrong = lp.filter(not($"label" === $"prediction")).count()
     val ratioWrong = wrong.toDouble / counttotal.toDouble
     val ratioCorrect = correct.toDouble / counttotal.toDouble
-    val truep = lp.filter($"pred_rf" === 0.0)
-      .filter($"label" === $"pred_rf").count() / counttotal.toDouble
-    val truen = lp.filter($"pred_rf" === 1.0)
-      .filter($"label" === $"pred_rf").count() / counttotal.toDouble
-    val falsep = lp.filter($"pred_rf" === 0.0)
-      .filter(not($"label" === $"pred_rf")).count() / counttotal.toDouble
-    val falsen = lp.filter($"pred_rf" === 1.0)
-      .filter(not($"label" === $"pred_rf")).count() / counttotal.toDouble
+    val truep = lp.filter($"prediction" === 1.0)
+      .filter($"label" === $"prediction").count() / counttotal.toDouble
+    val truen = lp.filter($"prediction" === 0.0)
+      .filter($"label" === $"prediction").count() / counttotal.toDouble
+    val falsep = lp.filter($"prediction" === 1.0)
+      .filter(not($"label" === $"prediction")).count() / counttotal.toDouble
+    val falsen = lp.filter($"prediction" === 0.0)
+      .filter(not($"label" === $"prediction")).count() / counttotal.toDouble
 
+      println("counttotal ", counttotal)
     println("ratio correct ", ratioCorrect)
     println("ratio wrong ", ratioWrong)
     println("correct ", correct)

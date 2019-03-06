@@ -62,7 +62,7 @@ object StructuredStreamingConsumer extends Serializable {
     // MapR Database table to write to 
     var tableName: String = "/user/mapr/flighttable"
     // Directory to read the saved ML model from 
-    var modeldirectory: String = "maprfs:///user/mapr/model/"
+    var modeldirectory: String = "/user/mapr/model/"
 
     if (args.length == 3) {
       topic = args(0)
@@ -101,7 +101,8 @@ object StructuredStreamingConsumer extends Serializable {
     // transform the DataFrame with the model pipeline, which will tranform the features according to the pipeline, 
     // estimate and then return the predictions in a column of a new DateFrame
     val predictions = model.transform(df3)
-
+ 
+     
     // select the columns that we want to store
     val lp = predictions.select($"id", $"fldate", $"month", $"dofW", $"carrier", $"src", $"dst", $"orig_dest",
       $"crsdephour", $"crsdeptime", $"crsarrtime", $"crselapsedtime", $"depdelay", $"arrdelay", $"dist",
@@ -109,10 +110,21 @@ object StructuredStreamingConsumer extends Serializable {
 
     println("write stream")
 
-    // write stream to memory just to show a little output, not for long or will run out of memory
-    val streamingquery = lp.writeStream.queryName("flight").format("memory").outputMode("append").start
+    import com.mapr.db.spark.impl._
+    import com.mapr.db.spark.streaming._
+    import com.mapr.db.spark.sql._
+    import com.mapr.db.spark.streaming.MapRDBSourceConfig
+    val writedb = lp.writeStream
+      .format(MapRDBSourceConfig.Format)
+      .option(MapRDBSourceConfig.TablePathOption, tableName)
+      .option(MapRDBSourceConfig.IdFieldPathOption, "id")
+      .option(MapRDBSourceConfig.CreateTableOption, false)
+      .option("checkpointLocation", "/tmp/flight")
+      .option(MapRDBSourceConfig.BulkModeOption, true)
+      .option(MapRDBSourceConfig.SampleSizeOption, 1000)
+      .start()
 
-    streamingquery.awaitTermination()
+    writedb.awaitTermination(3000)
 
   }
 

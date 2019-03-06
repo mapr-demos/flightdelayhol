@@ -172,7 +172,7 @@ $ /opt/mapr/bin/mapr dbshell
 
 maprdb mapr:> jsonoptions --pretty true --withtags false
 
-maprdb mapr:> find /apps/flighttable --limit 5
+maprdb mapr:> find /user/mapr/flighttable --limit 5
 
 
 ____________________________________________________________________
