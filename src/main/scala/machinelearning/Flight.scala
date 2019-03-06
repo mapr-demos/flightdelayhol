@@ -12,21 +12,20 @@ import org.apache.spark.sql.functions.{ concat, lit }
 
 object Flight {
 
-  case class Flight(_id: String, dofW: Integer, carrier: String, origin: String,
-    dest: String, crsdephour: Integer, crsdeptime: Double, depdelay: Double,
-    crsarrtime: Double, arrdelay: Double, crselapsedtime: Double, dist: Double)
-    extends Serializable
+  case class Flight(id: String, fldate: String, month: Integer, dofW: Integer, carrier: String, src: String, dst: String, crsdephour: Integer, crsdeptime: Integer, depdelay: Double, crsarrtime: Integer, arrdelay: Double, crselapsedtime: Double, dist: Double)
 
   val schema = StructType(Array(
-    StructField("_id", StringType, true),
+    StructField("id", StringType, true),
+    StructField("fldate", StringType, true),
+    StructField("month", IntegerType, true),
     StructField("dofW", IntegerType, true),
     StructField("carrier", StringType, true),
-    StructField("origin", StringType, true),
-    StructField("dest", StringType, true),
+    StructField("src", StringType, true),
+    StructField("dst", StringType, true),
     StructField("crsdephour", IntegerType, true),
-    StructField("crsdeptime", DoubleType, true),
+    StructField("crsdeptime", IntegerType, true),
     StructField("depdelay", DoubleType, true),
-    StructField("crsarrtime", DoubleType, true),
+    StructField("crsarrtime", IntegerType, true),
     StructField("arrdelay", DoubleType, true),
     StructField("crselapsedtime", DoubleType, true),
     StructField("dist", DoubleType, true)
@@ -36,9 +35,9 @@ object Flight {
 
     val spark: SparkSession = SparkSession.builder().appName("flightdelay").master("local[*]").getOrCreate()
 
-    var file: String = "/mapr/demo.mapr.com/data/flights20170102.json"
-    // var file = "maprfs:///data/flights20170102.json"
-    var modeldirectory: String = "/mapr/demo.mapr.com/data/flightmodel"
+    var file: String = "/user/mapr/data/flightdata2018.json"
+
+    var modeldirectory: String = "/mapr/demo.mapr.com/model"
 
     if (args.length == 1) {
       file = args(0)
@@ -46,35 +45,19 @@ object Flight {
     } else {
       System.out.println("Using hard coded parameters unless you specify the data file and test file. <datafile testfile>   ")
     }
-
     import spark.implicits._
     val df: Dataset[Flight] = spark.read.format("json").option("inferSchema", "false").schema(schema).load(file).as[Flight]
 
-    println("training dataset")
-
-    df.cache
-    df.count()
-    df.createOrReplaceTempView("flights")
-
     df.show
-    val df1 = df.withColumn("orig_dest", concat($"origin", lit("_"), $"dest"))
-    df1.show
+
+    val df1 = df.withColumn("orig_dest", concat($"src", lit("_"), $"dst"))
+    df1.show()
     df1.createOrReplaceTempView("flights")
 
-    // here we are looking at departure delays of 40 minutes, you  can change this to the value you want to look at
-    df1.select($"orig_dest", $"depdelay")
-      .filter($"depdelay" > 40)
-      .groupBy("orig_dest")
-      .count
-      .orderBy(desc("count")).show(5)
-
-    df.describe("dist", "depdelay", "arrdelay", "crselapsedtime").show
-
-    // bucket by departure delay of 40 in order to count
-    val delaybucketizer = new Bucketizer().setInputCol("depdelay")
-      .setOutputCol("delayed").setSplits(Array(0.0, 40.0, Double.PositiveInfinity))
-
+    val delaybucketizer = new Bucketizer().setInputCol("depdelay").setOutputCol("delayed").setSplits(Array(0.0, 41.0, Double.PositiveInfinity))
     val df2 = delaybucketizer.transform(df1)
+    df2.cache
+    df2.groupBy("delayed").count.show
 
     df2.createOrReplaceTempView("flights")
 
@@ -82,119 +65,66 @@ object Flight {
 
     val Array(trainingData, testData) = df2.randomSplit(Array(0.7, 0.3), 5043)
 
-    // change this fraction to be proportional to the delays vs non delays that you are looking at
-    val fractions = Map(0.0 -> .125, 1.0 -> 1.0) // 26
-    val strain = trainingData.stat.sampleBy("delayed", fractions, 36L)
-    strain.groupBy("delayed").count.show
+    // keep all delayed , keep 13% not delayed
+    val fractions = Map(0.0 -> .13, 1.0 -> 1.0) // 
+    val df3 = df2.stat.sampleBy("delayed", fractions, 36L)
+    // original distribution
+    df2.groupBy("delayed").count.show
+    // now
+    df3.groupBy("delayed").count.show
 
+    // categorical Column names
+    val categoricalColumns = Array("carrier", "src", "dst", "dofW", "orig_dest")
 
-    // column names for string types
-    val categoricalColumns = Array("carrier", "origin", "dest", "dofW", "orig_dest")
-
-    // used to encode string columns to number indices
-    // Indices are fit to dataset
+    // a StringIndexer will encode a string categorial column into a column of numbers
     val stringIndexers = categoricalColumns.map { colName =>
       new StringIndexer()
         .setInputCol(colName)
         .setOutputCol(colName + "Indexed")
-        .fit(strain)
+        .fit(trainingData)
     }
 
-    // add a label column based on departure delay, here departure delay of 40
-    val labeler = new Bucketizer().setInputCol("depdelay")
-      .setOutputCol("label")
-      .setSplits(Array(0.0, 40.0, Double.PositiveInfinity))
+    //a Bucketizer is used to add a label column of delayed 0/1.
+    val labeler = new Bucketizer().setInputCol("depdelay").setOutputCol("label").setSplits(Array(0.0, 40.0, Double.PositiveInfinity))
 
-    // list of feature columns
-    val featureCols = Array("carrierIndexed", "destIndexed",
-      "originIndexed", "dofWIndexed", "orig_destIndexed",
-      "crsdephour", "crsdeptime", "crsarrtime",
-      "crselapsedtime", "dist")
+    // list of all the feature columns
+    val featureCols = Array("carrierIndexed", "dstIndexed", "srcIndexed", "dofWIndexed", "orig_destIndexed", "crsdephour", "crsdeptime", "crsarrtime", "crselapsedtime", "dist")
 
-    // combines a list of feature columns into a vector column
-    val assembler = new VectorAssembler()
-      .setInputCols(featureCols)
-      .setOutputCol("features")
+    //The VectorAssembler combines a given list of columns into a single feature vector column. 
+    val assembler = new VectorAssembler().setInputCols(featureCols).setOutputCol("features")
 
-    val rf = new RandomForestClassifier()
-      .setLabelCol("label")
-      .setFeaturesCol("features")
+    // The final element in our ml pipeline is an estimator (a random forest classifier), 
+    // which will training on the vector of label and features.
+    val rf = new RandomForestClassifier().setLabelCol("label").setFeaturesCol("features").setNumTrees(10).setMaxBins(1000).setMaxDepth(8)
 
+    // Below we chain the stringindexers, vector assembler and randomforest in a Pipeline.
     val steps = stringIndexers ++ Array(labeler, assembler, rf)
-
     val pipeline = new Pipeline().setStages(steps)
 
-    val paramGrid = new ParamGridBuilder()
-      .addGrid(rf.maxBins, Array(100, 200))
-      .addGrid(rf.maxDepth, Array(2, 4, 10))
-      .addGrid(rf.numTrees, Array(5, 20))
-      .addGrid(rf.impurity, Array("entropy", "gini"))
-      .build()
+    val model = pipeline.fit(trainingData)
+
+    // Print out the feature importances
+    val rfm = model.stages.last.asInstanceOf[RandomForestClassificationModel]
+
+    val featureImportances = rfm.featureImportances
+    assembler.getInputCols.zip(featureImportances.toArray).sortBy(-_._2).foreach { case (feat, imp) => println(s"feature: $feat, importance: $imp") }
+
+    val predictions = model.transform(testData)
 
     val evaluator = new BinaryClassificationEvaluator()
-
-    // Set up 3-fold cross validation with paramGrid
-    val crossvalidator = new CrossValidator()
-      .setEstimator(pipeline)
-      .setEvaluator(evaluator)
-      .setEstimatorParamMaps(paramGrid).setNumFolds(3)
-
-    // fit the training data set and return a model
-    val pipelineModel = crossvalidator.fit(strain)
-
-    val featureImportances = pipelineModel
-      .bestModel.asInstanceOf[PipelineModel]
-      .stages(stringIndexers.size + 2)
-      .asInstanceOf[RandomForestClassificationModel]
-      .featureImportances
-
-    assembler.getInputCols
-      .zip(featureImportances.toArray)
-      .sortBy(-_._2)
-      .foreach {
-        case (feat, imp) =>
-          println(s"feature: $feat, importance: $imp")
-      }
-
-    val bestEstimatorParamMap = pipelineModel
-      .getEstimatorParamMaps
-      .zip(pipelineModel.avgMetrics)
-      .maxBy(_._2)
-      ._1
-    println(s"Best params:\n$bestEstimatorParamMap")
-
-    val predictions = pipelineModel.transform(testData)
-
     val areaUnderROC = evaluator.evaluate(predictions)
+    println("areaUnderROC " + areaUnderROC)
 
-    println("areaUnderROC", areaUnderROC)
-
-    val lp = predictions.select("label", "prediction")
-    val counttotal = predictions.count()
-    val correct = lp.filter($"label" === $"prediction").count()
-    val wrong = lp.filter(not($"label" === $"prediction")).count()
-    val ratioWrong = wrong.toDouble / counttotal.toDouble
-    val ratioCorrect = correct.toDouble / counttotal.toDouble
-
-    val truep = lp.filter($"prediction" === 0.0)
-      .filter($"label" === $"prediction").count() /
-      counttotal.toDouble
-
-    val truen = lp.filter($"prediction" === 1.0)
-      .filter($"label" === $"prediction").count() /
-      counttotal.toDouble
-
-    val falsep = lp.filter($"prediction" === 0.0)
-      .filter(not($"label" === $"prediction")).count() /
-      counttotal.toDouble
-
-    val falsen = lp.filter($"prediction" === 1.0)
-      .filter(not($"label" === $"prediction")).count() /
-      counttotal.toDouble
-
-    val cor = truen + truep / falsep + falsen
-    
-    pipelineModel.write.overwrite().save(modeldirectory)
+    val lp = predictions.select("prediction", "label")
+    val counttotal = predictions.count().toDouble
+    val correct = lp.filter("label == prediction").count().toDouble
+    val wrong = lp.filter("label != prediction").count().toDouble
+    val ratioWrong = wrong / counttotal
+    val ratioCorrect = correct / counttotal
+    val truen = (lp.filter($"label" === 0.0).filter($"label" === $"prediction").count()) / counttotal
+    val truep = (lp.filter($"label" === 1.0).filter($"label" === $"prediction").count()) / counttotal
+    val falsen = (lp.filter($"label" === 0.0).filter(not($"label" === $"prediction")).count()) / counttotal
+    val falsep = (lp.filter($"label" === 1.0).filter(not($"label" === $"prediction")).count()) / counttotal
 
     println("ratio correct", ratioCorrect)
 
@@ -205,16 +135,9 @@ object Flight {
     println("true negative", truen)
 
     println("false negative", falsen)
+    var dir = "maprfs:///user/mapr/model/"
+    model.write.overwrite().save(dir)
 
-    val precision = truep / (truep + falsep)
-    val recall = truep / (truep + falsen)
-    val fmeasure = 2 * precision * recall / (precision + recall)
-    val accuracy = (truep + truen) / (truep + truen + falsep + falsen)
-
-    println("precision ", precision)
-    println("recall " + recall)
-    println("f_measure " + fmeasure)
-    println("accuracy " + accuracy)
   }
 }
 

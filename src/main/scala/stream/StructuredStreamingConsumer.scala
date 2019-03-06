@@ -26,8 +26,8 @@ import com.mapr.db.spark.streaming.MapRDBSourceConfig
  * Usage: SparkKafkaConsumerProducer  <model> <topicssubscribe> <topicspublish>
  *
  *   <model>  is the path to the saved model
- *   <topics> is a  topic to consume from
- *   <topicp> is a  topic to publish to
+ *   <topic> is a  topic to consume from
+ *   <tableName> is a table to write to
  * Example:
  *    $  spark-submit --class com.sparkkafka.uber.SparkKafkaConsumerProducer --master local[2] \
  * mapr-sparkml-streaming-uber-1.0.jar /user/user01/data/savemodel  /user/user01/stream:ubers /user/user01/stream:uberp
@@ -38,21 +38,18 @@ import com.mapr.db.spark.streaming.MapRDBSourceConfig
 
 object StructuredStreamingConsumer extends Serializable {
 
-  case class Flight(_id: String, dofW: Integer, carrier: String, origin: String,
-    dest: String, crsdephour: Integer, crsdeptime: Double, depdelay: Double,
-    crsarrtime: Double, arrdelay: Double, crselapsedtime: Double, dist: Double)
-    extends Serializable
-
   val schema = StructType(Array(
-    StructField("_id", StringType, true),
+    StructField("id", StringType, true),
+    StructField("fldate", StringType, true),
+    StructField("month", IntegerType, true),
     StructField("dofW", IntegerType, true),
     StructField("carrier", StringType, true),
-    StructField("origin", StringType, true),
-    StructField("dest", StringType, true),
+    StructField("src", StringType, true),
+    StructField("dst", StringType, true),
     StructField("crsdephour", IntegerType, true),
-    StructField("crsdeptime", DoubleType, true),
+    StructField("crsdeptime", IntegerType, true),
     StructField("depdelay", DoubleType, true),
-    StructField("crsarrtime", DoubleType, true),
+    StructField("crsarrtime", IntegerType, true),
     StructField("arrdelay", DoubleType, true),
     StructField("crselapsedtime", DoubleType, true),
     StructField("dist", DoubleType, true)
@@ -60,9 +57,12 @@ object StructuredStreamingConsumer extends Serializable {
 
   def main(args: Array[String]): Unit = {
 
-    var topic: String = "/apps/stream:flights"
-    var tableName: String = "/apps/flighttable"
-    var modeldirectory: String = "/mapr/demo.mapr.com/data/flightmodel"
+    // MapR Event Store for Kafka Topic to read from 
+    var topic: String = "/user/mapr/stream:flights"
+    // MapR Database table to write to 
+    var tableName: String = "/user/mapr/flighttable"
+    // Directory to read the saved ML model from 
+    var modeldirectory: String = "maprfs:///user/mapr/model/"
 
     if (args.length == 3) {
       topic = args(0)
@@ -75,9 +75,8 @@ object StructuredStreamingConsumer extends Serializable {
 
     val spark: SparkSession = SparkSession.builder().appName("stream").master("local[*]").getOrCreate()
 
-    val model = CrossValidatorModel.load(modeldirectory)
-
     import spark.implicits._
+    val model = org.apache.spark.ml.PipelineModel.load(modeldirectory)
 
     val df1 = spark.readStream.format("kafka")
       .option("kafka.bootstrap.servers", "maprdemo:9092")
@@ -88,35 +87,32 @@ object StructuredStreamingConsumer extends Serializable {
       .option("maxOffsetsPerTrigger", 1000)
       .load()
 
-    println(df1.schema)
+    println(df1.printSchema)
 
     println("Enrich Transformm Stream")
 
+    // cast the df1 column value to string
+    // use the from_json function to convert value JSON string to flight schema
     val df2 = df1.select($"value" cast "string" as "json").select(from_json($"json", schema) as "data").select("data.*")
 
-    val df3 = df2.withColumn("orig_dest", concat($"origin", lit("_"), $"dest"))
+    // add column orig_dest, needed feature for ML model
+    val df3 = df2.withColumn("orig_dest", concat($"src", lit("_"), $"dst"))
 
-    
+    // transform the DataFrame with the model pipeline, which will tranform the features according to the pipeline, 
+    // estimate and then return the predictions in a column of a new DateFrame
     val predictions = model.transform(df3)
 
+    // select the columns that we want to store
+    val lp = predictions.select($"id", $"fldate", $"month", $"dofW", $"carrier", $"src", $"dst", $"orig_dest",
+      $"crsdephour", $"crsdeptime", $"crsarrtime", $"crselapsedtime", $"depdelay", $"arrdelay", $"dist",
+      $"label", $"prediction")
 
-    val lp = predictions.select($"_id", $"dofW", $"carrier", $"origin", $"dest",
-      $"crsdephour", $"crsdeptime", $"crsarrtime", $"crselapsedtime", $"depdelay",$"arrdelay",$"dist",
-      $"label", $"prediction".alias("pred_rf"))
-
-    
     println("write stream")
 
-    val query3 = lp.writeStream
-      .format(MapRDBSourceConfig.Format)
-      .option(MapRDBSourceConfig.TablePathOption, tableName)
-      .option(MapRDBSourceConfig.IdFieldPathOption, "_id")
-      .option(MapRDBSourceConfig.CreateTableOption, false)
-      .option("checkpointLocation", "/tmp/uberdb")
-      .option(MapRDBSourceConfig.BulkModeOption, true)
-      .option(MapRDBSourceConfig.SampleSizeOption, 1000).start()
+    // write stream to memory just to show a little output, not for long or will run out of memory
+    val streamingquery = lp.writeStream.queryName("flight").format("memory").outputMode("append").start
 
-    query3.awaitTermination()
+    streamingquery.awaitTermination()
 
   }
 
