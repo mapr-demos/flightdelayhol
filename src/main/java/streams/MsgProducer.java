@@ -18,10 +18,10 @@ public class MsgProducer {
     public static void main(String[] args) throws IOException {
 
 
-        String topic = "/apps/stream:flights";
+         String topic = "/user/mapr/stream:flights";
 
         // String fileName =  "./data/flights20170304.json";
-        String fileName = "/mapr/demo.mapr.com/data/flights20170102.json";
+        String fileName = "/mapr/demo.mapr.com/user/mapr/data/flightdata2018.json";
 
         if (args.length == 2) {
             topic = args[0];
