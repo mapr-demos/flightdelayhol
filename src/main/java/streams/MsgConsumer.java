@@ -19,8 +19,7 @@ public class MsgConsumer {
     public static void main(String[] args) throws IOException {
         configureConsumer(args);
 
-        //  String topic = "/mapr/maprdemo.mapr.io/apps/stream:flightp";
-        String topic = "/apps/stream:flights";
+        String topic = "/user/mapr/stream:flights";
         if (args.length == 1) {
             topic = args[0];
         }

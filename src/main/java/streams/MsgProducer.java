@@ -20,7 +20,6 @@ public class MsgProducer {
 
          String topic = "/user/mapr/stream:flights";
 
-        // String fileName =  "./data/flights20170304.json";
         String fileName = "/mapr/demo.mapr.com/user/mapr/data/flightdata2018.json";
 
         if (args.length == 2) {
