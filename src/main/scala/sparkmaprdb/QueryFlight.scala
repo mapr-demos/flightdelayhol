@@ -17,7 +17,7 @@ object QueryFlight {
 
 
 
- case class Flight(id: String, fldate: String, month: Integer, dofW: Integer, carrier: String, src: String, dst: String,orig_dest: String,label: String,prediction: String, crsdephour: Integer, crsdeptime: Integer, depdelay: Double, crsarrtime: Integer, arrdelay: Double, crselapsedtime: Double, dist: Double)
+ case class Flight(id: String, fldate: String, month: Integer, dofW: Integer, carrier: String, src: String, dst: String,orig_dst: String,label: String,prediction: String, crsdephour: Integer, crsdeptime: Integer, depdelay: Double, crsarrtime: Integer, arrdelay: Double, crselapsedtime: Double, dist: Double)
   
  val schema = StructType(Array(
     StructField("id", StringType, true),
@@ -27,7 +27,7 @@ object QueryFlight {
     StructField("carrier", StringType, true),
     StructField("src", StringType, true),
     StructField("dst", StringType, true),
-    StructField("orig_dest", StringType, true),
+    StructField("orig_dst", StringType, true),
     StructField("label", StringType, true),
     StructField("prediction", StringType, true),
     StructField("crsdephour", IntegerType, true),
@@ -63,20 +63,20 @@ object QueryFlight {
     df.createOrReplaceTempView("flights")
     println("what is the count of predicted delay/notdelay for this dstream dataset")
     
-    df.groupBy("orig_dest","label","prediction").count.show
+    df.groupBy("orig_dst","label","prediction").count.show
     
     df.groupBy("prediction").count().show()
 
     println("what is the count of predicted delay/notdelay by scheduled departure hour")
     spark.sql("select crsdephour, prediction, count(prediction) from flights group by crsdephour, prediction order by crsdephour").show
-    println("what is the count of predicted delay/notdelay by origin")
-    spark.sql("select origin, prediction, count(prediction) from flights group by origin, prediction order by origin").show
-    println("what is the count of predicted and actual  delay/notdelay by origin")
-    spark.sql("select origin, prediction, count(prediction),label, count(label) from flights group by origin, prediction, label order by origin, label, prediction").show
-    println("what is the count of predicted delay/notdelay by dest")
-    spark.sql("select dest, prediction, count(prediction) from flights group by dest, prediction order by dest").show
-    println("what is the count of predicted delay/notdelay by origin,dest")
-    spark.sql("select origin,dest, prediction, count(prediction) from flights group by origin,dest, prediction order by origin,dest").show
+    println("what is the count of predicted delay/notdelay by src")
+    spark.sql("select src, prediction, count(prediction) from flights group by src, prediction order by src").show
+    println("what is the count of predicted and actual  delay/notdelay by src")
+    spark.sql("select src, prediction, count(prediction),label, count(label) from flights group by src, prediction, label order by src, label, prediction").show
+    println("what is the count of predicted delay/notdelay by dst")
+    spark.sql("select dst, prediction, count(prediction) from flights group by dst, prediction order by dst").show
+    println("what is the count of predicted delay/notdelay by src,dst")
+    spark.sql("select src,dst, prediction, count(prediction) from flights group by src,dst, prediction order by src,dst").show
     println("what is the count of predicted delay/notdelay by day of the week")
     spark.sql("select dofW, prediction, count(prediction) from flights group by dofW, prediction order by dofW").show
     println("what is the count of predicted delay/notdelay by carrier")
