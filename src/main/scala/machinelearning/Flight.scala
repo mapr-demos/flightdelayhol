@@ -37,7 +37,7 @@ object Flight {
 
     var file: String = "/user/mapr/data/flightdata2018.json"
 
-    var modeldirectory: String = "/mapr/demo.mapr.com/model"
+    var modeldirectory: String = "/user/mapr/model"
 
     if (args.length == 1) {
       file = args(0)
@@ -57,11 +57,11 @@ object Flight {
     val delaybucketizer = new Bucketizer().setInputCol("depdelay").setOutputCol("delayed").setSplits(Array(0.0, 41.0, Double.PositiveInfinity))
     val df2 = delaybucketizer.transform(df1)
     df2.cache
-    df2.groupBy("delayed").count.show
+
 
     df2.createOrReplaceTempView("flights")
 
-    df2.groupBy("delayed").count.show
+  
 
     val Array(trainingData, testData) = df2.randomSplit(Array(0.7, 0.3), 5043)
 
