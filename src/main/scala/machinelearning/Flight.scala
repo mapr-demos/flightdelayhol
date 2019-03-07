@@ -95,7 +95,7 @@ object Flight {
 
     // The final element in our ml pipeline is an estimator (a random forest classifier), 
     // which will training on the vector of label and features.
-    val rf = new RandomForestClassifier().setLabelCol("label").setFeaturesCol("features").setNumTrees(8).setMaxBins(300).setMaxDepth(7)
+    val rf = new RandomForestClassifier().setLabelCol("label").setFeaturesCol("features").setNumTrees(10).setMaxBins(1000).setMaxDepth(8)
 
     // Below we chain the stringindexers, vector assembler and randomforest in a Pipeline.
     val steps = stringIndexers ++ Array(labeler, assembler, rf)

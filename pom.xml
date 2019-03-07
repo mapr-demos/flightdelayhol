@@ -20,12 +20,10 @@
         <!-- version = <spark_version>-mapr-<mapr_eco_version> -->
 
         <scala.binary.version>2.11</scala.binary.version>     
-     
- 
+    
+        <spark.version>2.3.1-mapr-1808</spark.version>
         <mapr.version>6.0.1-mapr</mapr.version>
-        <spark.version>2.2.1-mapr-1803</spark.version>
-        <scala.binary.version>2.11</scala.binary.version> 
-
+        <scala.binary.version>2.11</scala.binary.version>
     </properties>  
 
     <repositories>
@@ -92,7 +90,7 @@
         <dependency>
             <groupId>graphframes</groupId>
             <artifactId>graphframes</artifactId>
-            <version>0.5.0-spark2.1-s_2.11</version>
+            <version>0.7.0-spark2.3-s_2.11</version>
         </dependency>
 
 
@@ -105,7 +103,7 @@
   
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql-kafka-0-10_2.11</artifactId>
+            <artifactId>spark-sql-kafka-0-10_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
                  
         </dependency>

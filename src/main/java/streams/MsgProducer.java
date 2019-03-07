@@ -42,7 +42,7 @@ public class MsgProducer {
 
             // Send the record to the producer client library.
             producer.send(rec);
-            System.out.println("Sent message: " + line);
+         //   System.out.println("Sent message: " + line);
             line = reader.readLine();
 
         }
