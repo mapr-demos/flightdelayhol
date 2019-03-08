@@ -19,10 +19,14 @@
 
         <!-- version = <spark_version>-mapr-<mapr_eco_version> -->
 
-        <scala.binary.version>2.11</scala.binary.version>     
+        <scala.binary.version>2.11</scala.binary.version>   
+        
+            <mapr.version>6.1.0-mapr</mapr.version>
+    <drill.version>1.14.0-mapr</drill.version>
+    <ojai.version>3.0-mapr-1808</ojai.version>
+    <spark.version>2.3.1-mapr-1808-r1</spark.version>  
     
-        <spark.version>2.3.1-mapr-1808</spark.version>
-        <mapr.version>6.0.1-mapr</mapr.version>
+    
         <scala.binary.version>2.11</scala.binary.version>
     </properties>  
 
