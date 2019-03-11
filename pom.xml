@@ -21,11 +21,11 @@
 
         <scala.binary.version>2.11</scala.binary.version>   
         
-            <mapr.version>6.1.0-mapr</mapr.version>
-    <drill.version>1.14.0-mapr</drill.version>
-    <ojai.version>3.0-mapr-1808</ojai.version>
-    <spark.version>2.3.1-mapr-1808-r1</spark.version>  
-    
+        <mapr.version>6.1.0-mapr</mapr.version>
+        <drill.version>1.14.0-mapr</drill.version>
+        <ojai.version>3.0-mapr-1808</ojai.version>
+        <spark.version>2.3.1-mapr-1808-r1</spark.version>  
+        <streams.version>1.1.1-mapr-1808-streams-6.1.0</streams.version>
     
         <scala.binary.version>2.11</scala.binary.version>
     </properties>  
@@ -135,7 +135,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>1.0.1-mapr-streams-6.0.1</version>  
+            <version>${streams.version}</version>  
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.zookeeper</groupId>

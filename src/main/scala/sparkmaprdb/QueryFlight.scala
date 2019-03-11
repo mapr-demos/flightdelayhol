@@ -63,7 +63,7 @@ object QueryFlight {
     df.createOrReplaceTempView("flights")
     println("what is the count of predicted delay/notdelay for this dstream dataset")
     
-    df.groupBy("orig_dst","label","prediction").count.show
+    df.groupBy("orig_dest","label","prediction").count.show
     
     df.groupBy("prediction").count().show()
 
