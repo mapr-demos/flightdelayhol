@@ -78,6 +78,12 @@ object StructuredStreamingConsumer extends Serializable {
     import spark.implicits._
     val model = org.apache.spark.ml.PipelineModel.load(modeldirectory)
 
+    // Print out the model feature importances
+    val featureCols = Array("carrierIndexed", "dstIndexed", "srcIndexed", "dofWIndexed", "orig_destIndexed", "crsdephour", "crsdeptime", "crsarrtime", "crselapsedtime", "dist")
+    val rfm = model.stages.last.asInstanceOf[RandomForestClassificationModel]
+    val featureImportances = rfm.featureImportances
+    featureCols.zip(featureImportances.toArray).sortBy(-_._2).foreach { case (feat, imp) => println(s"feature: $feat, importance: $imp") }
+
     val df1 = spark.readStream.format("kafka")
       .option("kafka.bootstrap.servers", "maprdemo:9092")
       .option("subscribe", topic)
@@ -101,12 +107,10 @@ object StructuredStreamingConsumer extends Serializable {
     // transform the DataFrame with the model pipeline, which will tranform the features according to the pipeline, 
     // estimate and then return the predictions in a column of a new DateFrame
     val predictions = model.transform(df3)
- 
-     
+
     // select the columns that we want to store
-    val lp = predictions.select($"id", $"fldate", $"month", $"dofW", $"carrier", $"src", $"dst", $"orig_dest",
-      $"crsdephour", $"crsdeptime", $"crsarrtime", $"crselapsedtime", $"depdelay", $"arrdelay", $"dist",
-      $"label", $"prediction")
+    val df4 = predictions.drop("features").drop("rawPrediction").drop("probability")
+    println(df4.printSchema)
 
     println("write stream")
 
@@ -114,7 +118,7 @@ object StructuredStreamingConsumer extends Serializable {
     import com.mapr.db.spark.streaming._
     import com.mapr.db.spark.sql._
     import com.mapr.db.spark.streaming.MapRDBSourceConfig
-    val writedb = lp.writeStream
+    val writedb = df4.writeStream
       .format(MapRDBSourceConfig.Format)
       .option(MapRDBSourceConfig.TablePathOption, tableName)
       .option(MapRDBSourceConfig.IdFieldPathOption, "id")
@@ -124,7 +128,7 @@ object StructuredStreamingConsumer extends Serializable {
       .option(MapRDBSourceConfig.SampleSizeOption, 1000)
       .start()
 
-    writedb.awaitTermination(30000)
+    writedb.awaitTermination(300000)
 
   }
 

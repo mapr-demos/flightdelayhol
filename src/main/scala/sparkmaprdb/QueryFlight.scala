@@ -16,10 +16,7 @@ import org.apache.log4j.{ Level, Logger }
 object QueryFlight {
 
 
-
- case class Flight(id: String, fldate: String, month: Integer, dofW: Integer, carrier: String, src: String, dst: String,orig_dst: String,label: String,prediction: String, crsdephour: Integer, crsdeptime: Integer, depdelay: Double, crsarrtime: Integer, arrdelay: Double, crselapsedtime: Double, dist: Double)
-  
- val schema = StructType(Array(
+val schema = StructType(Array(
     StructField("id", StringType, true),
     StructField("fldate", StringType, true),
     StructField("month", IntegerType, true),
@@ -27,16 +24,16 @@ object QueryFlight {
     StructField("carrier", StringType, true),
     StructField("src", StringType, true),
     StructField("dst", StringType, true),
-    StructField("orig_dst", StringType, true),
-    StructField("label", StringType, true),
-    StructField("prediction", StringType, true),
     StructField("crsdephour", IntegerType, true),
     StructField("crsdeptime", IntegerType, true),
     StructField("depdelay", DoubleType, true),
     StructField("crsarrtime", IntegerType, true),
     StructField("arrdelay", DoubleType, true),
     StructField("crselapsedtime", DoubleType, true),
-    StructField("dist", DoubleType, true)
+    StructField("dist", DoubleType, true),
+    StructField("orig_dest", StringType, true),
+    StructField("label", DoubleType, true),
+    StructField("prediction", DoubleType, true)
   ))
 
   def main(args: Array[String]) {
@@ -55,7 +52,7 @@ object QueryFlight {
 
     import spark.implicits._
     // load payment dataset from MapR-DB 
-    val df: Dataset[Flight] = spark.sparkSession.loadFromMapRDB[Flight](tableName, schema).as[Flight]
+    val df= spark.sparkSession.loadFromMapRDB(tableName, schema)
 
     println("Flights from MapR-DB")
     df.show
