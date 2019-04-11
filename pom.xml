@@ -14,7 +14,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
 
-        <scala.version>2.11.5</scala.version>
+        <scala.version>2.11.8</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
 
         <!-- version = <spark_version>-mapr-<mapr_eco_version> -->
@@ -22,8 +22,7 @@
         <scala.binary.version>2.11</scala.binary.version>   
         
         <mapr.version>6.1.0-mapr</mapr.version>
-        <drill.version>1.14.0-mapr</drill.version>
-        <ojai.version>3.0-mapr-1808</ojai.version>
+    
         <spark.version>2.3.1-mapr-1808-r1</spark.version>  
         <streams.version>1.1.1-mapr-1808-streams-6.1.0</streams.version>
     

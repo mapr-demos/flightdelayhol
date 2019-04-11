@@ -7,32 +7,35 @@ import org.apache.spark.ml.feature._
 
 object Flight {
 
-  case class Flight(_id: String, dofW: Integer, carrier: String, origin: String,
-    dest: String, crsdephour: Integer, crsdeptime: Double, depdelay: Double,
-    crsarrtime: Double, arrdelay: Double, crselapsedtime: Double, dist: Double)
-    extends Serializable
+  case class Flight(id: String, 
+                    fldate: String, month: Integer, dofW: Integer, carrier: String, 
+                    src: String, dst: String, crsdephour: Integer, crsdeptime: Integer, 
+                    depdelay: Double, crsarrtime: Integer, arrdelay: Double, crselapsedtime: 
+                    Double, dist: Double)
 
   val schema = StructType(Array(
-    StructField("_id", StringType, true),
+    StructField("id", StringType, true),
+    StructField("fldate", StringType, true),
+    StructField("month", IntegerType, true),
     StructField("dofW", IntegerType, true),
     StructField("carrier", StringType, true),
-    StructField("origin", StringType, true),
-    StructField("dest", StringType, true),
+    StructField("src", StringType, true),
+    StructField("dst", StringType, true),
     StructField("crsdephour", IntegerType, true),
-    StructField("crsdeptime", DoubleType, true),
+    StructField("crsdeptime", IntegerType, true),
     StructField("depdelay", DoubleType, true),
-    StructField("crsarrtime", DoubleType, true),
+    StructField("crsarrtime", IntegerType, true),
     StructField("arrdelay", DoubleType, true),
     StructField("crselapsedtime", DoubleType, true),
     StructField("dist", DoubleType, true)
   ))
 
+
   def main(args: Array[String]) {
 
     val spark: SparkSession = SparkSession.builder().appName("flightdataset").master("local[*]").getOrCreate()
 
-    var file: String = "/mapr/demo.mapr.com/data/flights20170102.json"
-   // var file = "maprfs:///data/flights20170102.json"
+    var file: String = "/user/mapr/data/flightdata2018.json"
 
     if (args.length == 1) {
       file = args(0)
@@ -61,13 +64,13 @@ object Flight {
 
     //count the departure delays greater than 40 minutes by destination, and sort them with the highest first. 
     println("count the departure delays greater than 40 minutes by destination, and sort them with the highest first")
-    df.filter($"depdelay" > 40).groupBy("dest").count().orderBy(desc("count")).show(3)
+    df.filter($"depdelay" > 40).groupBy("dst").count().orderBy(desc("count")).show(3)
 
     // top 5 dep delay 
     println(" longest departure delays ")
-    df.select($"carrier", $"origin", $"dest", $"depdelay", $"crsdephour").filter($"depdelay" > 40).orderBy(desc("depdelay")).show(5)
+    df.select($"carrier", $"src", $"dst", $"depdelay", $"crsdephour").filter($"depdelay" > 40).orderBy(desc("depdelay")).show(5)
 
-    spark.sql("select carrier,origin, dest, depdelay,crsdephour, dist, dofW from flights where depdelay > 40 order by depdelay desc limit 5").show
+    spark.sql("select carrier,src, dst, depdelay,crsdephour, dist, dofW from flights where depdelay > 40 order by depdelay desc limit 5").show
 
     println(" average departure delay by Carrier")
     df.groupBy("carrier").agg(avg("depdelay")).show
@@ -80,8 +83,8 @@ object Flight {
     df.filter($"depdelay" > 40).groupBy("carrier").count.orderBy(desc("count")).show(5)
     spark.sql("select carrier, count(depdelay) from flights where depdelay > 40 group by carrier").show
 
-    println("what is the count of departure delay by origin airport where delay minutes >40")
-    spark.sql("select origin, count(depdelay) from flights where depdelay > 40 group by origin ORDER BY count(depdelay) desc").show
+    println("what is the count of departure delay by src airport where delay minutes >40")
+    spark.sql("select src, count(depdelay) from flights where depdelay > 40 group by src ORDER BY count(depdelay) desc").show
 
     // Count of Departure Delays by Day of the week
     println("Count of Departure Delays by Day of the week, where delay minutes >40")
@@ -91,8 +94,8 @@ object Flight {
     println("Count of Departure Delays by scheduled departure hour")
     spark.sql("select crsdephour, count(depdelay) from flights where depdelay > 40 group by crsdephour order by crsdephour").show()
 
-    println("Count of Departure Delays by origin")
-    spark.sql("select origin, count(depdelay) from flights where depdelay > 40 group by origin ORDER BY count(depdelay) desc").show()
+    println("Count of Departure Delays by src")
+    spark.sql("select src, count(depdelay) from flights where depdelay > 40 group by src ORDER BY count(depdelay) desc").show()
 
     
     val delaybucketizer = new Bucketizer().setInputCol("depdelay").setOutputCol("delayed").setSplits(Array(0.0, 40.0, Double.PositiveInfinity))
@@ -101,13 +104,13 @@ object Flight {
     df4.groupBy("delayed").count.show
     df4.createOrReplaceTempView("flights")
 
-    println("what is the count of departure delay and not delayed by origin")
-    spark.sql("select origin, delayed, count(delayed) from flights group by origin, delayed order by origin").show
+    println("what is the count of departure delay and not delayed by src")
+    spark.sql("select src, delayed, count(delayed) from flights group by src, delayed order by src").show
 
-    println("what is the count of departure delay by dest")
-    spark.sql("select dest, delayed, count(delayed) from flights where delayed=1 group by dest, delayed order by dest").show
-    println("what is the count of departure delay by origin, dest")
-    spark.sql("select origin,dest, delayed, count(delayed) from flights where delayed=1 group by origin,dest, delayed order by origin,dest").show
+    println("what is the count of departure delay by dst")
+    spark.sql("select dst, delayed, count(delayed) from flights where delayed=1 group by dst, delayed order by dst").show
+    println("what is the count of departure delay by src, dst")
+    spark.sql("select src,dst, delayed, count(delayed) from flights where delayed=1 group by src,dst, delayed order by src,dst").show
     println("what is the count of departure delay by dofW")
     spark.sql("select dofW, delayed, count(delayed) from flights where delayed=1 group by dofW, delayed order by dofW").show
 

@@ -11,31 +11,31 @@ import org.graphframes.lib.AggregateMessages
 
 object Flight {
 
-  case class Flight(_id: String, dofW: Integer, carrier: String, origin: String,
-    dest: String, crsdephour: Integer, crsdeptime: Double, depdelay: Double,
-    crsarrtime: Double, arrdelay: Double, crselapsedtime: Double, dist: Double)
-    extends Serializable
+
 
   val schema = StructType(Array(
-    StructField("_id", StringType, true),
+    StructField("id", StringType, true),
+    StructField("fldate", StringType, true),
+    StructField("month", IntegerType, true),
     StructField("dofW", IntegerType, true),
     StructField("carrier", StringType, true),
-    StructField("origin", StringType, true),
-    StructField("dest", StringType, true),
+    StructField("src", StringType, true),
+    StructField("dst", StringType, true),
     StructField("crsdephour", IntegerType, true),
-    StructField("crsdeptime", DoubleType, true),
+    StructField("crsdeptime", IntegerType, true),
     StructField("depdelay", DoubleType, true),
-    StructField("crsarrtime", DoubleType, true),
+    StructField("crsarrtime", IntegerType, true),
     StructField("arrdelay", DoubleType, true),
     StructField("crselapsedtime", DoubleType, true),
     StructField("dist", DoubleType, true)
   ))
 
+
   def main(args: Array[String]) {
 
     val spark: SparkSession = SparkSession.builder().appName("flightgraphframes").master("local[*]").getOrCreate()
 
-   var file1: String = "/mapr/demo.mapr.com/data/flights20170102.json"
+   var file1: String  = "/user/mapr/data/flightdata2018.json"
     var file2: String = "/mapr/demo.mapr.com/data/airports.json"
 
     if (args.length == 2) {
@@ -46,12 +46,10 @@ object Flight {
       System.out.println("Using hard coded parameters unless you specify the 2 input  files. <file file>   ")
     }
     import spark.implicits._
-    val df: Dataset[Flight] = spark.read.format("json").option("inferSchema", "false").schema(schema).load(file1).as[Flight]
+    val flights= spark.read.format("json").option("inferSchema", "false").schema(schema).load(file1)
   
-    df.createOrReplaceTempView("flights")
+    flights.createOrReplaceTempView("flights")
 
-    val flights = df.withColumnRenamed("_id", "id")
-      .withColumnRenamed("origin", "src").withColumnRenamed("dest", "dst").withColumnRenamed("depdelay", "delay")
 
     val airports = spark.read.json(file2)
     airports.createOrReplaceTempView("airports")
@@ -64,25 +62,25 @@ object Flight {
 
     // What are the longest delays for  flights  that are greater than  1500 miles in  distance?
     println("What are the longest delays for  flights  that are greater than  1500 miles in  distance?")
-    graph.edges.filter("dist > 1500").orderBy(desc("delay")).show(5)
+    graph.edges.filter("dist > 1500").orderBy(desc("depdelay")).show(5)
 
     // show the longest distance routes
     graph.edges.groupBy("src", "dst")
       .max("dist").sort(desc("max(dist)")).show(4)
 
-    // Which flight routes have the highest average delay  ?
-    graph.edges.groupBy("src", "dst").avg("delay").sort(desc("avg(delay)")).show(5)
+    // Which flight routes have the highest average depdelay  ?
+    graph.edges.groupBy("src", "dst").avg("depdelay").sort(desc("avg(depdelay)")).show(5)
 
-    //count of departure delays by Origin and destination.  
-    graph.edges.filter(" delay > 40").groupBy("src", "dst").agg(count("delay").as("flightcount")).sort(desc("flightcount")).show(5)
+    //count of departure depdelays by Origin and destination.  
+    graph.edges.filter(" depdelay > 40").groupBy("src", "dst").agg(count("depdelay").as("flightcount")).sort(desc("flightcount")).show(5)
 
-    // What are the longest delays for flights that are greater than 1500 miles in  distance?
+    // What are the longest depdelays for flights that are greater than 1500 miles in  distance?
     graph.edges.filter("dist > 1500")
-      .orderBy(desc("delay")).show(3)
+      .orderBy(desc("depdelay")).show(3)
 
-    //What is the average delay for delayed flights departing from Boston?
-    graph.edges.filter("src = 'BOS' and delay > 1")
-      .groupBy("src", "dst").avg("delay").sort(desc("avg(delay)")).show
+    //What is the average depdelay for depdelayed flights departing from Boston?
+    graph.edges.filter("src = 'BOS' and depdelay > 1")
+      .groupBy("src", "dst").avg("depdelay").sort(desc("avg(depdelay)")).show
 
     //which airport has the most incoming flights? The most outgoing ?
     graph.inDegrees.orderBy(desc("inDegree")).show(3)
@@ -101,12 +99,12 @@ object Flight {
     ranks.vertices.orderBy($"pagerank".desc).show()
 
     val AM = AggregateMessages
-    val msgToSrc = AM.edge("delay")
+    val msgToSrc = AM.edge("depdelay")
     val agg = {
       graph.aggregateMessages
         .sendToSrc(msgToSrc)
-        .agg(avg(AM.msg).as("avgdelay"))
-        .orderBy(desc("avgdelay"))
+        .agg(avg(AM.msg).as("avgdepdelay"))
+        .orderBy(desc("avgdepdelay"))
         .limit(5)
     }
     agg.show()

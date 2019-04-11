@@ -1,11 +1,11 @@
 
-This example runs on MapR 6.0.1 ,  Spark 2.2.1 and greater
+This example runs on MapR 6.1 ,  Spark 2.3.1 and greater
 
 Install and fire up the Sandbox using the instructions here: http://maprdocs.mapr.com/home/SandboxHadoop/c_sandbox_overview.html. 
 
 ____________________________________________________________________
 
-Step 1: Log into Sandbox, create data directory, MapR-ES Topic and MapR-DB table:
+Step 1: Log into Sandbox, create data directory, MapR Event Stre Topic and MapR Database table:
 
 Use an SSH client such as Putty (Windows) or Terminal (Mac) to login. See below for an example:
 use userid: mapr and password: mapr.
@@ -18,35 +18,31 @@ after logging into the sandbox At the Sandbox unix command line:
  
 Create a directory for the data for this project
 
-mkdir /mapr/demo.mapr.com/data
+mkdir /user/mapr/data
+or
+hadoop fs -mkdir /user/mapr/data
+
 
 ____________________________________________________________________
 
 Step 2: Copy the data file to the MapR sandbox or your MapR cluster
 
  
-Copy the data file from the project data folder to the sandbox using scp to this directory /user/mapr/data/uber.csv on the sandbox:
+Copy the data file from the project data folder to the sandbox using scp to this directory /user/mapr/data/flight.csv on the sandbox:
 
-For VMWare use:  $ scp  *.json  mapr@<ipaddress>:/mapr/demo.mapr.com/data/.
-For Virtualbox use:  $ scp -P 2222 data/*.json  mapr@127.0.0.1:/mapr/demo.mapr.com/data/.
+For VMWare use:  $ scp  *.json  mapr@<ipaddress>:/mapr/demo.mapr.com/user/mapr/data/.
+For Virtualbox use:  $ scp -P 2222 data/*.json  mapr@127.0.0.1:/mapr/demo.mapr.com/user/mapr/data/.
 
 this will put the data file into the cluster directory: 
-/mapr/<cluster-name>/data/
-
+/mapr/<cluster-name>/user/mapr/data
 ____________________________________________________________________
 
 Step 3: To run the code in the Spark Shell:
  
-/opt/mapr/spark/spark-2.2.1/bin/spark-shell --master local[2]
+/opt/mapr/spark/spark-2.3.1/bin/spark-shell --master local[2]
  
  - For Yarn you should change --master parameter to yarn-client - "--master yarn-client"
 
-The you can copy paste code from the scripts directory to run the examples :
-
-look at and copy code from these files:
-Chapter 2  dataset 
-Chapter 5 machinelearning
-Chapter 9 graphframe1 graphframe2
 
 ____________________________________________________________________
 
@@ -66,24 +62,24 @@ From your laptop command line or with a scp tool :
 
 use userid: mapr and password: mapr.
 
-For VMWare use:  $ scp  nameoffile.jar  mapr@ipaddress:/home/mapr/. 
+For VMWare use:  $ scp  nameoffile.jar  mapr@ipaddress:/mapr/demo.mapr.com/user/mapr/.
 
-For Virtualbox use:  $ scp -P 2222 target/*.jar  mapr@127.0.0.1:/home/mapr/.  
+For Virtualbox use:  $ scp -P 2222 target/*.jar  mapr@127.0.0.1:/mapr/demo.mapr.com/user/mapr/.
 
-this will put the jar file into the mapr user home directory: 
-/home/mapr/
+this will put the jar file into the directory: 
+/user/mapr
 
 
 _____________________________________________________________________
 
 Step 5:
 
- To run the application code for Chapter 2 Datasets,  DataFrames and Spark SQL
+ To run the application code for Datasets,  DataFrames and Spark SQL
 
 
 From the Sandbox command line :
 
-/opt/mapr/spark/spark-2.2.1/bin/spark-submit --class dataset.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class dataset.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
 This will read  from the file "/mapr/demo.mapr.com/data/flights20170102.json" 
 
@@ -96,9 +92,9 @@ ____________________________________________________________________
 
 From the Sandbox command line :
 
-/opt/mapr/spark/spark-2.2.1/bin/spark-submit --class machinelearning.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class machinelearning.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
-This will read  from the file mfs:///mapr/demo.mapr.com/data/uber.csv  
+This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.csv  
 
 You can optionally pass the file as an input parameter   (take a look at the code to see what it does)
 
@@ -109,34 +105,34 @@ ____________________________________________________________________
 
 From the Sandbox command line :
 
-/opt/mapr/spark/spark-2.2.1/bin/spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --class graphx.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-2.3.1/bin/spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --class graphx.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
-This will read  from the file mfs:///mapr/demo.mapr.com/data/uber.csv  
+This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.csv  
 
 You can optionally pass the file as an input parameter   (take a look at the code to see what it does)
 
 _____________________________________________________________________
 Additional code examples not in book:
 
-Structured Streaming with MapR-ES and MapR-DB :
+Structured Streaming with MapR-ES and MapR Database :
 
 use the mapr command line interface to create a stream, a topic, get info and create a table:
 
-maprcli stream create -path /apps/stream -produceperm p -consumeperm p -topicperm p
-maprcli stream topic create -path /apps/stream -topic flights  
+maprcli stream create -path /user/mapr/stream -produceperm p -consumeperm p -topicperm p
+maprcli stream topic create -path /user/mapr/stream -topic flights  
 
-to get info on the ubers topic :
-maprcli stream topic info -path /apps/stream -topic flights
+to get info on the flights topic :
+maprcli stream topic info -path /user/mapr/stream -topic flights
 
-Create the MapR-DB Table which will get written to
+Create the MapR Database Table which will get written to
 
-maprcli table create -path /apps/flighttable -tabletype json -defaultreadperm p -defaultwriteperm p
+maprcli table create -path /user/maprflighttable -tabletype json -defaultreadperm p -defaultwriteperm p
 
 Run the Streaming code to publish events to the topic:
 
 java -cp ./mapr-spark-flightdelay-1.0.jar:`mapr classpath` streams.MsgProducer
 
-This client will read lines from the file in "/mapr/demo.mapr.com/data/uber.csv" and publish them to the topic /apps/uberstream:ubers. 
+This client will read lines from the file in "/mapr/demo.mapr.com/data/flight.csv" and publish them to the topic /user/mapr/stream:flights. 
 You can optionally pass the file and topic as input parameters <file topic> 
 
 Optional: run the MapR Streams Java consumer to see what was published :
@@ -145,23 +141,23 @@ java -cp mapr-spark-flightdelay-1.0.jar:`mapr classpath` streams.MsgConsumer
 
 _____________________________________________________________________________
 
-Run the  the Spark Structured Streaming client to consume events enrich them and write them to MapR-DB
+Run the  the Spark Structured Streaming client to consume events enrich them and write them to MapR Database
 (in separate consoles if you want to run at the same time)
 
 
-/opt/mapr/spark/spark-2.2.1/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2] \
+/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2] \
  mapr-spark-flightdelay-1.0.jar 
 
-This spark streaming client will consume from the topic /apps/uberstream:ubers, enrich from the saved model at
-/mapr/demo.mapr.com/data/ubermodel and write to the table /apps/ubertable.
+This spark streaming client will consume from the topic /user/mapr/stream:flights, enrich from the saved model at
+/mapr/demo.mapr.com/data/flightmodel and write to the table /user/maprflighttable.
 You can optionally pass the  input parameters <topic model table> 
  
 You can use ctl-c to stop
 
 
-In another window while the Streaming code is running, run the code to Query from MapR-DB 
+In another window while the Streaming code is running, run the code to Query from MapR Database 
 
-/opt/mapr/spark/spark-2.2.1/bin/spark-submit --class sparkmaprdb.QueryFlight --master local[2] \
+/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class sparkmaprdb.QueryFlight --master local[2] \
  mapr-spark-flightdelay-1.0.jar 
 
  Use the Mapr-DB shell to query the data
@@ -178,21 +174,21 @@ maprdb mapr:> find /user/mapr/flighttable --limit 5
 ____________________________________________________________________
 
 
- To run the application code for the blog GraphFrames with MapR-DB 
+ To run the application code for the blog GraphFrames with MapR Database 
 
-Create the MapR-DB Table which will get written to 
-(if you created it for the exercise above, delete it maprcli table delete -path /apps/flighttable)
+Create the MapR Database Table which will get written to 
+(if you created it for the exercise above, delete it maprcli table delete -path /user/maprflighttable)
 
-maprcli table create -path /apps/flighttable -tabletype json -defaultreadperm p -defaultwriteperm p
+maprcli table create -path /user/maprflighttable -tabletype json -defaultreadperm p -defaultwriteperm p
 
 /opt/mapr/spark/spark-2.3.1/bin/spark-shell --class graphmaprdb.WriteFlight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
 This will read  from the file "/mapr/demo.mapr.com/data/flightdata2018.json" 
-and write to /apps/flighttable  you can pass in the file and table name as arguments
+and write to /user/maprflighttable  you can pass in the file and table name as arguments
 
-To read from MapR-DB into GraphFrames
+To read from MapR Database into GraphFrames
 
 /opt/mapr/spark/spark-2.3.1/bin/spark-shell --class graphmaprdb.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
-This will read  from the /apps/flighttable and the airports.json file  you can pass in the file and table name as arguments
+This will read  from the /user/maprflighttable and the airports.json file  you can pass in the file and table name as arguments
 
