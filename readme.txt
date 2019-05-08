@@ -100,36 +100,9 @@ You can optionally pass the file as an input parameter   (take a look at the cod
 
 ____________________________________________________________________
 
- To run the application code for  Structured Streaming
 
 
-From the Sandbox command line :
-
-/opt/mapr/spark/spark-*/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2]  mapr-spark-flightdelay-1.0.jar 
-
-This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.json 
-
-You can optionally pass the file as an input parameter   (take a look at the code to see what it does)
-
-
-
-____________________________________________________________________
-
- To run the application code for GraphFrames
-
-
-From the Sandbox command line :
-
-/opt/mapr/spark/spark-*/bin/spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --class graphx.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
-
-This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.csv  
-
-You can optionally pass the file as an input parameter   (take a look at the code to see what it does)
-
-_____________________________________________________________________
-Additional code examples not in book:
-
-Structured Streaming with MapR-ES and MapR Database :
+Preparation for Structured Streaming with MapR Event Store for Kafka and MapR Database :
 
 use the mapr command line interface to create a stream, a topic, get info and create a table:
 
@@ -143,7 +116,7 @@ Create the MapR Database Table which will get written to
 
 maprcli table create -path /user/maprflighttable -tabletype json -defaultreadperm p -defaultwriteperm p
 
-Run the Streaming code to publish events to the topic:
+Run the Java code to publish events to the topic:
 
 java -cp ./mapr-spark-flightdelay-1.0.jar:`mapr classpath` streams.MsgProducer
 
@@ -157,11 +130,12 @@ java -cp mapr-spark-flightdelay-1.0.jar:`mapr classpath` streams.MsgConsumer
 _____________________________________________________________________________
 
 Run the  the Spark Structured Streaming client to consume events enrich them and write them to MapR Database
-(in separate consoles if you want to run at the same time)
+(in separate consoles if you want to run at the same time as the java publisher)
 
 
-/opt/mapr/spark/spark-*/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2] \
- mapr-spark-flightdelay-1.0.jar 
+From the Sandbox command line :
+
+/opt/mapr/spark/spark-*/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
 This spark streaming client will consume from the topic /user/mapr/stream:flights, enrich from the saved model at
 /mapr/demo.mapr.com/data/flightmodel and write to the table /user/maprflighttable.
@@ -189,21 +163,12 @@ maprdb mapr:> find /user/mapr/flighttable --limit 5
 ____________________________________________________________________
 
 
- To run the application code for the blog GraphFrames with MapR Database 
-
-Create the MapR Database Table which will get written to 
-(if you created it for the exercise above, delete it maprcli table delete -path /user/maprflighttable)
-
-maprcli table create -path /user/maprflighttable -tabletype json -defaultreadperm p -defaultwriteperm p
-
-/opt/mapr/spark/spark-*/bin/spark-submit --class graphmaprdb.WriteFlight --master local[2]  mapr-spark-flightdelay-1.0.jar 
-
-This will read  from the file "/mapr/demo.mapr.com/data/flightdata2018.json" 
-and write to /user/maprflighttable  you can pass in the file and table name as arguments
-
+ To run the application code for GraphFrames
 To read from MapR Database into GraphFrames
 
-/opt/mapr/spark/spark-*/bin/spark-submit --class graphmaprdb.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+From the Sandbox command line :
 
-This will read  from the /user/maprflighttable and the airports.json file  you can pass in the file and table name as arguments
+/opt/mapr/spark/spark-*/bin/spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --class graphmaprdb.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+
+
 
