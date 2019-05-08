@@ -39,7 +39,7 @@ ____________________________________________________________________
 
 Step 3: To run the code in the Spark Shell:
  
-/opt/mapr/spark/spark-2.3.1/bin/spark-shell --master local[2]
+/opt/mapr/spark/spark-*/bin/spark-shell --master local[2]
  
  - For Yarn you should change --master parameter to yarn-client - "--master yarn-client"
 
@@ -79,7 +79,7 @@ Step 5:
 
 From the Sandbox command line :
 
-/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class dataset.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-*/bin/spark-submit --class dataset.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
 This will read  from the file "/mapr/demo.mapr.com/data/flights20170102.json" 
 
@@ -87,25 +87,40 @@ You can optionally pass the file as an input parameter   (take a look at the cod
 
 ____________________________________________________________________
 
- To run the application code for Chapter 5 Machine Learning Classification
+ To run the application code for  Machine Learning Classification
 
 
 From the Sandbox command line :
 
-/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class machinelearning.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-*/bin/spark-submit --class machinelearning.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
-This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.csv  
+This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.json 
 
 You can optionally pass the file as an input parameter   (take a look at the code to see what it does)
 
 ____________________________________________________________________
 
- To run the application code for Chapter 9 GraphFrames
+ To run the application code for  Structured Streaming
 
 
 From the Sandbox command line :
 
-/opt/mapr/spark/spark-2.3.1/bin/spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --class graphx.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-*/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2]  mapr-spark-flightdelay-1.0.jar 
+
+This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.json 
+
+You can optionally pass the file as an input parameter   (take a look at the code to see what it does)
+
+
+
+____________________________________________________________________
+
+ To run the application code for GraphFrames
+
+
+From the Sandbox command line :
+
+/opt/mapr/spark/spark-*/bin/spark-submit --packages graphframes:graphframes:0.5.0-spark2.1-s_2.11 --class graphx.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
 This will read  from the file mfs:///mapr/demo.mapr.com/data/flight.csv  
 
@@ -145,7 +160,7 @@ Run the  the Spark Structured Streaming client to consume events enrich them and
 (in separate consoles if you want to run at the same time)
 
 
-/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2] \
+/opt/mapr/spark/spark-*/bin/spark-submit --class stream.StructuredStreamingConsumer --master local[2] \
  mapr-spark-flightdelay-1.0.jar 
 
 This spark streaming client will consume from the topic /user/mapr/stream:flights, enrich from the saved model at
@@ -157,7 +172,7 @@ You can use ctl-c to stop
 
 In another window while the Streaming code is running, run the code to Query from MapR Database 
 
-/opt/mapr/spark/spark-2.3.1/bin/spark-submit --class sparkmaprdb.QueryFlight --master local[2] \
+/opt/mapr/spark/spark-*/bin/spark-submit --class sparkmaprdb.QueryFlight --master local[2] \
  mapr-spark-flightdelay-1.0.jar 
 
  Use the Mapr-DB shell to query the data
@@ -181,14 +196,14 @@ Create the MapR Database Table which will get written to
 
 maprcli table create -path /user/maprflighttable -tabletype json -defaultreadperm p -defaultwriteperm p
 
-/opt/mapr/spark/spark-2.3.1/bin/spark-shell --class graphmaprdb.WriteFlight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-*/bin/spark-submit --class graphmaprdb.WriteFlight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
 This will read  from the file "/mapr/demo.mapr.com/data/flightdata2018.json" 
 and write to /user/maprflighttable  you can pass in the file and table name as arguments
 
 To read from MapR Database into GraphFrames
 
-/opt/mapr/spark/spark-2.3.1/bin/spark-shell --class graphmaprdb.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
+/opt/mapr/spark/spark-*/bin/spark-submit --class graphmaprdb.Flight --master local[2]  mapr-spark-flightdelay-1.0.jar 
 
 This will read  from the /user/maprflighttable and the airports.json file  you can pass in the file and table name as arguments
 
